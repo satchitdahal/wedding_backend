@@ -6,6 +6,7 @@ const cors = require("cors")
 const pool = require("./db")
 const bcrypt = require('bcrypt')
 const saltRound = 10;
+require('dotenv').config()
 
 //middleware
 app.use(cors())
@@ -222,8 +223,8 @@ app.post('/login', async (req, res) => {
 
 
 
-const PORT = 5000
-app.listen(5000, () => {
+const PORT = process.env.PORT
+app.listen(PORT, () => {
     console.log(`APP IS RUNNING on PORT ${PORT}`)
 })
 
