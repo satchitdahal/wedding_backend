@@ -1,4 +1,3 @@
--- Contacts table
 CREATE TABLE Contacts (
     id SERIAL PRIMARY KEY,
     f_name VARCHAR(255) NOT NULL,
