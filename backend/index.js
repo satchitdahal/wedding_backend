@@ -202,23 +202,23 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// app.post('/hash-password', async (req, res) => {
-//     try {
-//         const { password } = req.body;
+app.post('/hash-password', async (req, res) => {
+    try {
+        const { password } = req.body;
 
-//         if (!password) {
-//             return res.status(400).json({ error: 'Password is required.' });
-//         }
+        if (!password) {
+            return res.status(400).json({ error: 'Password is required.' });
+        }
 
-//         const saltRounds = 10;
-//         const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-//         res.json({ hashedPassword });
-//     } catch (error) {
-//         console.error('Error hashing password:', error);
-//         res.status(500).json({ error: 'Internal Server Error' });
-//     }
-// });
+        res.json({ hashedPassword });
+    } catch (error) {
+        console.error('Error hashing password:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 
