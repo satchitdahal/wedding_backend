@@ -37,7 +37,7 @@ app.get("/contacts", async (req, res) => {
         res.json(all_contacts.rows)
     } catch (err) {
         console.error(err.message)
-        res.status(500).json("Server error")
+        res.status(500).json("Server error here")
     }
 })
 
