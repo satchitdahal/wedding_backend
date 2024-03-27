@@ -24,3 +24,26 @@ CREATE TABLE RSVP (
     num_of_ppl INT,
     CONSTRAINT positive_num_of_ppl CHECK (num_of_ppl >= 0)
 );
+
+CREATE TABLE Users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE groups (
+    group_id SERIAL PRIMARY KEY,
+    last_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE members (
+    member_id SERIAL PRIMARY KEY,
+    group_id INT REFERENCES groups(group_id) ON DELETE CASCADE,
+    full_name VARCHAR(255) NOT NULL,
+    wedding BOOLEAN DEFAULT FALSE,
+    reception BOOLEAN DEFAULT FALSE,
+    -- this is for the none
+    zero BOOLEAN DEFAULT FALSE, 
+-- this is for the both 
+    two BOOLEAN DEFAULT FALSE
+);

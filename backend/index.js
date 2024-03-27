@@ -219,7 +219,242 @@ app.post('/hash-password', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+//Get a group for specific name
+// edit this part bc you need to add a thing in the
+// app.get("/groups/:name", async (req, res) => {
+//     try {
+//         const { name } = req.params;
+//         const similarGroups = await pool.query("SELECT * FROM groups WHERE last_name ILIKE $1", [`%${name}%`]);
 
+//         if (similarGroups.rows.length === 0) {
+//             return res.status(404).json({ error: 'No similar groups found' });
+//         }
+
+//         res.json(similarGroups.rows);
+//     } catch (error) {
+//         console.error("Error getting groups:", error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
+// app.get("/groups/:name", async (req, res) => {
+//     try {
+//         const { name } = req.params;
+//         const similarGroups = await pool.query(
+//             "SELECT * FROM groups WHERE to_tsvector('english', last_name) @@ to_tsquery('english', $1 || ':*')",
+//             [name]
+//         );
+
+//         if (similarGroups.rows.length === 0) {
+//             return res.status(404).json({ error: 'No similar groups found' });
+//         }
+
+//         res.json(similarGroups.rows);
+//     } catch (error) {
+//         console.error("Error getting groups:", error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
+// ROUTES FOR GROUP ************************************************
+
+// POST for Group
+app.post("/groups", async (req, res) => {
+    try {
+        const { last_name } = req.body;
+        const group = await pool.query("INSERT INTO groups (last_name) VALUES ($1) RETURNING *", [last_name])
+        res.json(group.rows[0])
+    } catch (error) {
+        console.error("ERROR creating groups", error);
+        res.status(500).json({ error: "internal server error" })
+    }
+})
+
+// Get a Group
+// app.get("/groups", async (req, res) => {
+//     try {
+//         const groups = await pool.query("SELECT * FROM groups")
+//         res.json(groups.rows)
+//     } catch (error) {
+//         console.error("Error gettting groups", error)
+//         res.status(500).json({ error: "Internal Server Error" })
+//     }
+// })
+
+// Get All Groups with Members
+app.get("/groups", async (req, res) => {
+    try {
+        const allGroups = await pool.query(`
+            SELECT 
+                groups.*, 
+                array_agg(
+                    json_build_object(
+                        'member_id', members.member_id,
+                        'full_name', members.full_name,
+                        'wedding', members.wedding,
+                        'reception', members.reception,
+                        'zero', members.zero,
+                        'two', members.two
+                    )
+                ) AS members
+            FROM 
+                groups 
+            LEFT JOIN 
+                members ON groups.group_id = members.group_id
+            GROUP BY 
+                groups.group_id
+        `);
+        res.json(allGroups.rows);
+    } catch (error) {
+        console.error("Error getting groups with members:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+
+//get a group by name search
+// app.get("/groups/:name", async (req, res) => {
+//     try {
+//         const { name } = req.params;
+//         const similarGroups = await pool.query(
+//             "SELECT * FROM groups WHERE last_name % $1 ORDER BY similarity(last_name, $1) DESC",
+//             [name]
+//         );
+
+//         if (similarGroups.rows.length === 0) {
+//             return res.status(404).json({ error: 'No similar groups found' });
+//         }
+
+//         res.json(similarGroups.rows);
+//     } catch (error) {
+//         console.error("Error getting groups:", error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
+app.get("/groups/:name", async (req, res) => {
+    try {
+        const { name } = req.params;
+        const similarGroups = await pool.query(`
+            SELECT 
+                groups.*, 
+                array_agg(
+                    json_build_object(
+                        'member_id', members.member_id,
+                        'full_name', members.full_name,
+                        'wedding', members.wedding,
+                        'reception', members.reception,
+                        'zero', members.zero,
+                        'two', members.two
+                    )
+                ) AS members
+            FROM 
+                groups 
+            LEFT JOIN 
+                members ON groups.group_id = members.group_id
+            WHERE 
+                groups.last_name ILIKE '%' || $1 || '%' -- Search for similar group names
+            GROUP BY 
+                groups.group_id
+            ORDER BY 
+                similarity(groups.last_name, $1) DESC
+        `, [name]);
+
+        if (similarGroups.rows.length === 0) {
+            return res.status(404).json({ error: 'No similar groups found' });
+        }
+
+        res.json(similarGroups.rows);
+    } catch (error) {
+        console.error("Error getting groups:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+
+
+// edit a Group
+app.put("/groups/:group_id", async (req, res) => {
+    try {
+        const { group_id } = req.params;
+        const { last_name } = req.body;
+        const updatedGroup = await pool.query("UPDATE groups SET last_name = $1 WHERE group_id = $2 RETURNING *", [last_name, group_id]);
+        res.json(updatedGroup.rows[0]);
+    } catch (error) {
+        console.error("Error updating group:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+// Delete a Group
+app.delete("/groups/:group_id", async (req, res) => {
+    try {
+        const { group_id } = req.params;
+        await pool.query("DELETE FROM groups WHERE group_id = $1", [group_id]);
+        res.json({ message: 'Group deleted successfully' });
+    } catch (error) {
+        console.error("Error deleting group:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+// ROUTES FOR GROUP END *********************************************
+
+
+// ROUTES FOR MEMBERS ************************************************
+// POST for MEMBERS 
+app.post("/members/:group_id", async (req, res) => {
+    try {
+        const { group_id } = req.params;
+        const { full_name } = req.body; // Remove boolean fields from request body
+        const newMember = await pool.query("INSERT INTO members (group_id, full_name) VALUES ($1, $2) RETURNING *",
+            [group_id, full_name]);
+        res.json(newMember.rows[0]);
+    } catch (error) {
+        console.error("Error creating member:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+// Get a MEMEBERS
+app.get("/members/:group_id", async (req, res) => {
+    try {
+        const { group_id } = req.params;
+        const membersInGroup = await pool.query("SELECT * FROM members WHERE group_id = $1", [group_id]);
+        res.json(membersInGroup.rows);
+    } catch (error) {
+        console.error("Error getting members of group:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// edit a MEMBERS
+app.put("/members/:member_id", async (req, res) => {
+    try {
+        const { member_id } = req.params;
+        const { full_name, wedding, reception, zero, two } = req.body;
+        const updatedMember = await pool.query("UPDATE members SET full_name = $1, wedding = COALESCE($2, wedding), reception = COALESCE($3, reception), zero = COALESCE($4, zero), two = COALESCE($5, two) WHERE member_id = $6 RETURNING *",
+            [full_name, wedding, reception, zero, two, member_id]);
+        res.json(updatedMember.rows[0]);
+    } catch (error) {
+        console.error("Error updating member:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+// Delete a MEMEBERS
+app.delete("/members/:member_id", async (req, res) => {
+    try {
+        const { member_id } = req.params;
+        await pool.query("DELETE FROM members WHERE member_id = $1", [member_id]);
+        res.json({ message: 'Member deleted successfully' });
+    } catch (error) {
+        console.error("Error deleting member:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ROUTES FOR MEMEBRS END *********************************************
 
 
 
