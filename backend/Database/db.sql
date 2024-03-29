@@ -33,17 +33,19 @@ CREATE TABLE Users (
 
 CREATE TABLE groups (
     group_id SERIAL PRIMARY KEY,
-    last_name VARCHAR(100) NOT NULL
+    last_name VARCHAR(100) NOT NULL,
+    num_invited INT DEFAULT 0,
+    letter CHAR(1)
 );
 
 CREATE TABLE members (
     member_id SERIAL PRIMARY KEY,
     group_id INT REFERENCES groups(group_id) ON DELETE CASCADE,
-    full_name VARCHAR(255) NOT NULL,
-    wedding BOOLEAN DEFAULT FALSE,
-    reception BOOLEAN DEFAULT FALSE,
+    full_name VARCHAR(255),
+    wedding BOOLEAN ,
+    reception BOOLEAN ,
     -- this is for the none
-    zero BOOLEAN DEFAULT FALSE, 
+    zero BOOLEAN, 
 -- this is for the both 
-    two BOOLEAN DEFAULT FALSE
+    two BOOLEAN
 );

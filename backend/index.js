@@ -258,17 +258,34 @@ app.post('/hash-password', async (req, res) => {
 
 // ROUTES FOR GROUP ************************************************
 
+
 // POST for Group
+// unlocke this one if needed
+// app.post("/groups", async (req, res) => {
+//     try {
+//         const { last_name } = req.body;
+//         const group = await pool.query("INSERT INTO groups (last_name) VALUES ($1) RETURNING *", [last_name])
+//         res.json(group.rows[0])
+//     } catch (error) {
+//         console.error("ERROR creating groups", error);
+//         res.status(500).json({ error: "internal server error" })
+//     }
+// })
+
+
 app.post("/groups", async (req, res) => {
     try {
-        const { last_name } = req.body;
-        const group = await pool.query("INSERT INTO groups (last_name) VALUES ($1) RETURNING *", [last_name])
-        res.json(group.rows[0])
+        const { last_name, num_invited, letter } = req.body;
+        const group = await pool.query(
+            "INSERT INTO groups (last_name, num_invited, letter) VALUES ($1, $2, $3) RETURNING *",
+            [last_name, num_invited, letter]
+        );
+        res.json(group.rows[0]);
     } catch (error) {
-        console.error("ERROR creating groups", error);
-        res.status(500).json({ error: "internal server error" })
+        console.error("Error creating group:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-})
+});
 
 // Get a Group
 // app.get("/groups", async (req, res) => {
@@ -365,7 +382,19 @@ app.get("/groups/:name", async (req, res) => {
             return res.status(404).json({ error: 'No similar groups found' });
         }
 
-        res.json(similarGroups.rows);
+        // res.json(similarGroups.rows);
+
+        // this is new 
+        const modifiedResponse = similarGroups.rows.map(group => ({
+            ...group,
+            num_invited: group.num_invited,
+            letter: group.letter,
+        }));
+
+        res.json(modifiedResponse);
+
+        // till here
+
     } catch (error) {
         console.error("Error getting groups:", error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -403,18 +432,59 @@ app.delete("/groups/:group_id", async (req, res) => {
 
 // ROUTES FOR MEMBERS ************************************************
 // POST for MEMBERS 
+
+// app.post("/members/:group_id", async (req, res) => {
+//     try {
+//         const { group_id } = req.params;
+//         const { full_name } = req.body; // Remove boolean fields from request body
+//         const newMember = await pool.query("INSERT INTO members (group_id, full_name) VALUES ($1, $2) RETURNING *",
+//             [group_id, full_name]);
+//         res.json(newMember.rows[0]);
+//     } catch (error) {
+//         console.error("Error creating member:", error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
+// try this one 
+// POST /members/:group_id Endpoint
+// app.post("/members/:group_id", async (req, res) => {
+//     try {
+//         const { group_id } = req.params;
+//         const { full_name, wedding, reception, zero, two } = req.body;
+
+//         const newMember = await pool.query(
+//             "INSERT INTO members (group_id, full_name, wedding, reception, zero, two) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+//             [group_id, full_name, wedding || null, reception || null, zero || null, two || null]
+//         );
+
+//         res.json(newMember.rows[0]);
+//     } catch (error) {
+//         console.error("Error creating member:", error);
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
+
 app.post("/members/:group_id", async (req, res) => {
     try {
         const { group_id } = req.params;
-        const { full_name } = req.body; // Remove boolean fields from request body
-        const newMember = await pool.query("INSERT INTO members (group_id, full_name) VALUES ($1, $2) RETURNING *",
-            [group_id, full_name]);
+        const { full_name } = req.body; // Only extract the full_name from the request body
+
+        // Insert the new member with NULL values for boolean fields
+        const newMember = await pool.query(
+            "INSERT INTO members (group_id, full_name) VALUES ($1, $2) RETURNING *",
+            [group_id, full_name]
+        );
+
         res.json(newMember.rows[0]);
     } catch (error) {
         console.error("Error creating member:", error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
+
 // Get a MEMEBERS
 app.get("/members/:group_id", async (req, res) => {
     try {
